@@ -1,64 +1,71 @@
-from argparse import Namespace
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import polars as pl, time, os, psutil ,  argparse
+import polars as pl
+import time
+import os
+import psutil
+import  argparse
 from argparse import Namespace
 
-
-def estimate_row_size(filepath, sample_row=100):
-    df = pl.read_csv(filepath, n_rows=sample_row)
-    size_bytes = df.estimated_size()
-    row_size = size_bytes // sample_row
-    return row_size
+from utils import get_chunk_size
 
 
-def get_chunk_size(filepath, num_threads,memory_fraction=0.8):
-    row_size = estimate_row_size(filepath)
-    available_memory = psutil.virtual_memory().available
-    usable_memory = int(available_memory * memory_fraction)
-    mem_per_thread = usable_memory // num_threads
-    chunk_rows = mem_per_thread // row_size
-    return max(5_000, min(chunk_rows, 100_000))
-
-
+# calculate sum of batch
 def process_batch(batch_list):
-    return sum(batch_list.select(pl.all().sum()).row(0))
+    # sum of all columns in batch
+    batch_col_sum = batch_list.select(pl.all().sum())
+    # Get First row containing individually sum of columns
+    sum_col = batch_col_sum.row(0)
+    # Total sum
+    batch_sum = sum(sum_col)
+    return batch_sum
 
 
 def multithreaded_csv_polar(filename):
-    start_time = time.time()
+    try:
+        # Track start time and memory
+        start_time = time.time()
+        process = psutil.Process(os.getpid())
+        mem_before = process.memory_info().rss
 
-    # track memory
-    process = psutil.Process(os.getpid())
-    mem_before = process.memory_info().rss
+        # get threads as per system resources
+        num_threads = min(4, psutil.cpu_count(logical=False)) # logically false = CPU cores
 
+        # Get batch size based on system memory
+        batch_size = get_chunk_size(filename, num_threads)
+        # read csv file
+        reader = pl.read_csv_batched(filename, batch_size=batch_size,has_header=False)
+        futures = []
+        total_sum = 0
 
-    num_threads = min(4, psutil.cpu_count(logical=False))
-    batch_size = get_chunk_size(filename, num_threads)
-
-    reader = pl.read_csv_batched(filename, batch_size=batch_size)
-
-    futures = []
-    total_sum = 0
-
-    with ThreadPoolExecutor(max_workers=num_threads) as executor:
-        while True:
-            batch_list = reader.next_batches(num_threads)
-            if not batch_list:
-                break
-            for batch in batch_list:
-                futures.append(executor.submit(process_batch, batch))
+        # Thread pool executor for parallel processing
+        with ThreadPoolExecutor(max_workers=num_threads) as executor:
+            while True:
+                batch_list = reader.next_batches(num_threads)
+                if not batch_list:
+                    break  # Exit if no more batches
+                # Submit each batch to the thread pool for processing
+                for batch in batch_list:
+                    futures.append(executor.submit(process_batch, batch))
+                # Process completed batches as they finish
             for f in as_completed(futures):
                 total_sum += f.result()
 
-    end_time = time.time()
-    mem_after = process.memory_info().rss
+        # Track End time and Memory
+        end_time = time.time()
+        mem_after = process.memory_info().rss
 
-    print(f'Start Time        : {time.ctime(start_time)}')
-    print(f'End Time          : {time.ctime(end_time)}')
-    print(f'Time Spent        : {end_time - start_time:.2f} seconds')
-    print(f'File Size         : {os.path.getsize(filename) / (1024 * 1024):.2f} MB')
-    print(f'Memory Used       : {(mem_after - mem_before) / (1024 * 1024):.2f} MB')
-    print(f'Total Sum of CSV  : {total_sum}')
+        print(f'Start Time        : {time.ctime(start_time)}')
+        print(f'End Time          : {time.ctime(end_time)}')
+        print(f'Time Spent        : {end_time - start_time:.2f} seconds')
+        print(f'File Size         : {os.path.getsize(filename) / (1024 * 1024):.2f} MB')
+        print(f'Memory Used       : {(mem_after - mem_before) / (1024 * 1024):.2f} MB')
+        print(f'Total Sum of CSV  : {total_sum}')
+    except FileNotFoundError:
+        print(f"Error: File '{filename}' not found.")
+    except pl.exceptions.PolarsError as e:
+        print(f"Error reading CSV with Polars: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
 
 
 if __name__ == '__main__':
@@ -66,3 +73,11 @@ if __name__ == '__main__':
     parser.add_argument('-f',type=str,help="Give path of the file")
     args:Namespace = parser.parse_args()
     multithreaded_csv_polar(args.f)
+
+    # OUTPUT
+# Start Time        : Mon Apr 28 21:25:40 2025
+# End Time          : Mon Apr 28 21:25:42 2025
+# Time Spent        : 1.31 seconds
+# File Size         : 500.00 MB
+# Memory Used       : 631.32 MB
+# Total Sum of CSV  : 67233713511

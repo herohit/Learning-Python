@@ -1,4 +1,8 @@
-import csv , random, argparse , os,datetime
+import csv
+import random
+import argparse
+import os
+import datetime
 from argparse import Namespace
 
 def generate_random_row(column):
@@ -7,13 +11,16 @@ def generate_random_row(column):
 
 
 def generate_csv(size=None,rows=None,columns=100):
+    if rows is None and size is None:
+        print('Please provide size or rows')
+        return
+
+
     name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f'{name}.csv'
     with open(filename,'w',newline="") as csvfile:
         writer = csv.writer(csvfile)
 
-        if rows is None and size is None:
-            return
         if rows:
             for _ in range(rows):
                 row = generate_random_row(columns)
