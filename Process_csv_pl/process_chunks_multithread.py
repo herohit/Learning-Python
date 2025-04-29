@@ -87,12 +87,15 @@ def multithreaded_csv_polar(filename):
     except FileNotFoundError:
         # Handle case when the file is not found
         print(f"Error: File '{filename}' not found.")
+        raise
     except pl.exceptions.PolarsError as e:
         # Handle errors raised by Polars when reading the CSV
         print(f"Error reading CSV with Polars: {e}")
+        raise
     except Exception as e:
         # Catch any unexpected exceptions
         print(f"An unexpected error occurred: {e}")
+        raise
 
 
 if __name__ == '__main__':
