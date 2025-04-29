@@ -10,7 +10,15 @@ from utils import get_chunk_size
 
 def chunk_csv_polar(filename):
     """
-       Read a large CSV file in chunks and compute the total sum of all numeric values.
+       Reads a large CSV file in chunks and computes the total sum of all numeric columns.
+       It tracks execution time, memory usage, and handles errors like missing files and reading issues.
+
+    Args:
+        filename (str): The path to the CSV file to process.
+
+    Raises:
+        FileNotFoundError: If the CSV file is not found.
+        pl.exceptions.PolarsError: If there's an issue with reading the CSV using Polars.
     """
     try:
         # start time
@@ -51,20 +59,33 @@ def chunk_csv_polar(filename):
         print(f'File Size         : {os.path.getsize(filename) / (1024 * 1024):.2f} MB')
         print(f'Memory Used       : {(mem_after - mem_before) / (1024 * 1024):.2f} MB')
         print(f'Total Sum of CSV  : {total_sum}')
+
     except FileNotFoundError:
+        # Handle case when the file is not found
         print(f"Error: File '{filename}' not found.")
+        raise
     except pl.exceptions.PolarsError as e:
+        # Handle errors raised by Polars when reading the CSV
         print(f"Error reading CSV with Polars: {e}")
+        raise
     except Exception as e:
+        # Catch any unexpected exceptions
         print(f"An unexpected error occurred: {e}")
+        raise
 
 
 
 if __name__ == '__main__':
+    # Set up command line argument parsing
     parser = argparse.ArgumentParser()
     parser.add_argument('-f',type=str,help="Give path of the file")
+
+    # Parse the command-line arguments
     args:Namespace = parser.parse_args()
+
+    # Call the CSV process function with parsed arguments
     chunk_csv_polar(args.f)
+
 # OUTPUT
 # Start Time        : Mon Apr 28 21:25:33 2025
 # End Time          : Mon Apr 28 21:25:36 2025

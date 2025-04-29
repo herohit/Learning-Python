@@ -9,8 +9,17 @@ from argparse import Namespace
 from utils import get_chunk_size
 
 
-# calculate sum of batch
+
 def process_batch(batch_list):
+    """
+       Processes a batch of data and computes the total sum of all columns.
+
+       Args:
+           batch_list (pl.DataFrame): A batch of data read from the CSV file.
+
+       Returns:
+           int: The total sum of all numeric columns in the batch.
+       """
     # sum of all columns in batch
     batch_col_sum = batch_list.select(pl.all().sum())
     # Get First row containing individually sum of columns
@@ -21,6 +30,17 @@ def process_batch(batch_list):
 
 
 def multithreaded_csv_polar(filename):
+    """
+       Processes a large CSV file using multiple threads to compute the sum of all numeric values.
+       Tracks memory usage, execution time, and handles errors like missing files or reading issues.
+
+       Args:
+           filename (str) -f : The path to the CSV file to process.
+
+       Raises:
+           FileNotFoundError: If the CSV file is not found.
+           pl.exceptions.PolarsError: If there's an issue with reading the CSV using Polars.
+       """
     try:
         # Track start time and memory
         start_time = time.time()
@@ -53,7 +73,7 @@ def multithreaded_csv_polar(filename):
         # Track End time and Memory
         end_time = time.time()
         mem_after = process.memory_info().rss
-
+        # Print the results: time taken, memory used, file size, and total sum
         print(f'Start Time        : {time.ctime(start_time)}')
         print(f'End Time          : {time.ctime(end_time)}')
         print(f'Time Spent        : {end_time - start_time:.2f} seconds')
@@ -61,20 +81,28 @@ def multithreaded_csv_polar(filename):
         print(f'Memory Used       : {(mem_after - mem_before) / (1024 * 1024):.2f} MB')
         print(f'Total Sum of CSV  : {total_sum}')
     except FileNotFoundError:
+        # Handle case when the file is not found
         print(f"Error: File '{filename}' not found.")
     except pl.exceptions.PolarsError as e:
+        # Handle errors raised by Polars when reading the CSV
         print(f"Error reading CSV with Polars: {e}")
     except Exception as e:
+        # Catch any unexpected exceptions
         print(f"An unexpected error occurred: {e}")
 
 
 if __name__ == '__main__':
+    # Set up command line argument parsing
     parser = argparse.ArgumentParser()
     parser.add_argument('-f',type=str,help="Give path of the file")
+
+    # Parse the command-line arguments
     args:Namespace = parser.parse_args()
+
+    # Call the CSV process function with parsed arguments
     multithreaded_csv_polar(args.f)
 
-    # OUTPUT
+# OUTPUT
 # Start Time        : Mon Apr 28 21:25:40 2025
 # End Time          : Mon Apr 28 21:25:42 2025
 # Time Spent        : 1.31 seconds
