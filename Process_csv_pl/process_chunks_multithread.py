@@ -48,7 +48,10 @@ def multithreaded_csv_polar(filename):
         mem_before = process.memory_info().rss
 
         # get threads as per system resources
-        num_threads = min(4, psutil.cpu_count(logical=False)) # logically false = CPU cores
+        total_num_threads =  psutil.cpu_count(logical=False) # logically false = CPU cores
+
+        # Use 60% of total threads available
+        num_threads = int(total_num_threads * 0.6)
 
         # Get batch size based on system memory
         batch_size = get_chunk_size(filename, num_threads)
@@ -73,6 +76,7 @@ def multithreaded_csv_polar(filename):
         # Track End time and Memory
         end_time = time.time()
         mem_after = process.memory_info().rss
+
         # Print the results: time taken, memory used, file size, and total sum
         print(f'Start Time        : {time.ctime(start_time)}')
         print(f'End Time          : {time.ctime(end_time)}')
