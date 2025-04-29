@@ -45,7 +45,7 @@ def chunk_csv_polar(filename):
             df_batch = batch[0].select(pl.all().sum())
             # get first row
             batch_row = df_batch.row(0)
-            # total_sum += sum(batch[0].select(pl.all().sum()).row(0))
+
             total_sum += sum(batch_row)
 
         # End time
