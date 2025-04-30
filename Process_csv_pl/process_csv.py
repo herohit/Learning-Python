@@ -8,15 +8,17 @@ from argparse import Namespace
 
 def process_csv(filename):
     """
-       Processes a CSV file by reading it using Polars, calculating the sum of all columns,
+    Processes a CSV file by reading it using Polars, calculating the sum of all columns,
        and printing relevant information about time spent, memory usage, and the total sum.
 
-       Args:
-           filename (str) -f : The path to the CSV file to process.
+    Args:
+        filename (str) -f : The path to the CSV file to process.
 
-       Raises:
-           FileNotFoundError: If the CSV file cannot be found.
-           pl.exceptions.PolarsError: If there's an error reading the CSV with Polars.
+    Raises:
+        FileNotFoundError: If the CSV file cannot be found.
+        pl.exceptions.PolarsError: If there's an error reading the CSV with Polars.
+    Returns:
+        Result : A dictionary containing the total sum of all numeric columns , start time , end time, time spent , file size and memory used.
        """
     try:
         start_time = time.time()
@@ -42,12 +44,27 @@ def process_csv(filename):
         end_time = time.time()
         mem_after = process.memory_info().rss
 
-        print(f'Start Time        : {time.ctime(start_time)}')
-        print(f'End Time          : {time.ctime(end_time)}')
-        print(f'Time Spent        : {end_time - start_time:.2f} seconds')
-        print(f'File Size         : {os.path.getsize(filename) / (1024 * 1024):.2f} MB')
-        print(f'Memory Used       : {(mem_after - mem_before) / (1024 * 1024):.2f} MB')
-        print(f'Total Sum of CSV  : {total_sum}')
+        # Time spent by the process
+        time_spent = end_time - start_time
+
+        # file size
+        file_size = os.path.getsize(filename) / (1024 * 1024)
+
+        # memory used
+        mem_used=(mem_after - mem_before) / (1024 * 1024)
+
+        # Store all the info in result
+        result = {
+            "start_time":time.ctime(start_time) ,
+            "end_time" :time.ctime(end_time) ,
+            "time_spent" : time_spent ,
+            "file_size" : file_size ,
+            "mem_used" :mem_used ,
+            "total_sum" : total_sum
+
+        }
+
+        return result
 
 
     except FileNotFoundError:
@@ -77,7 +94,15 @@ if __name__ == '__main__':
     args:Namespace = parser.parse_args()
 
     # Call the CSV process function with parsed arguments
-    process_csv(args.f)
+    data = process_csv(args.f)
+
+    # Print Data
+    print(f'Start Time        : {data["start_time"]}')
+    print(f'End Time          : {data["end_time"]}')
+    print(f'Time Spent        : {data["time_spent"]:.2f} seconds')
+    print(f'File Size         : {data["file_size"]:.2f} MB')
+    print(f'Memory Used       : {data["mem_used"]:.2f} MB')
+    print(f'Total Sum of CSV  : {data["total_sum"]}')
 
 # OUTPUT
 # Start Time        : Mon Apr 28 21:25:48 2025
