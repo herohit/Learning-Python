@@ -4,21 +4,21 @@ import psutil
 
 def estimate_row_size(filepath, sample_row=100):
     """
-        Estimate the average size of a single row in a CSV file.
-        This function reads a sample of rows from the file and calculates
-        the estimated size of each row in bytes.
+    Estimate the average size of a single row in a CSV file.
+    This function reads a sample of rows from the file and calculates
+    the estimated size of each row in bytes.
 
-        Args:
-            filepath (str): Path to the CSV file.
-            sample_row (int, optional): The number of rows to sample for size estimation. Default is 100.
+    Args:
+        filepath (str): Path to the CSV file.
+        sample_row (int, optional): The number of rows to sample for size estimation. Default is 100.
 
-        Returns:
-            int: The estimated size of a single row in bytes.
+    Returns:
+        int: The estimated size of a single row in bytes.
 
-        Raises:
-            FileNotFoundError: If the file doesn't exist.
-            polars.exceptions.PolarsError: If there is an issue reading the CSV.
-            Exception: For any other unexpected errors.
+    Raises:
+        FileNotFoundError: If the file doesn't exist.
+        polars.exceptions.PolarsError: If there is an issue reading the CSV.
+        Exception: For any other unexpected errors.
     """
     try:
         # Read csv file
